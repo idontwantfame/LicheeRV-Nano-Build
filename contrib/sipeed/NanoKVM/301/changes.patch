@@ -1,0 +1,144 @@
+diff --git a/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S20firewall b/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S20firewall
+new file mode 100755
+--- /dev/null
++++ b/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S20firewall
+@@ -0,0 +1,75 @@
++#!/bin/sh
++# S20firewall — stateful packet filter for NanoKVM
++#
++# Establishes a default-deny INPUT policy before any service binds.
++# Runs at S20: after network init (S10uuid, S30eth runs later but eth0
++# is up), before all application services (S50+).
++#
++# FORWARD DROP neutralises Tailscale's net.ipv4.ip_forward=1 sysctl
++# without touching sysctl — the kernel still consults iptables even
++# when ip_forward is on. #301
++
++set_rules() {
++  iptables -F
++  iptables -X
++
++  # Default policies
++  iptables -P INPUT   DROP
++  iptables -P FORWARD DROP
++  iptables -P OUTPUT  ACCEPT
++
++  # Loopback — always trusted
++  iptables -A INPUT -i lo -j ACCEPT
++
++  # Responses to our own outbound connections
++  iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
++
++  # ICMP echo — useful for connectivity diagnostics
++  iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
++
++  # USB RNDIS (usb0) — trusted point-to-point link; carries udhcpd (67/udp)
++  iptables -A INPUT -i usb0 -j ACCEPT
++
++  # Tailscale VPN — trusted encrypted tunnel; allow all inbound
++  iptables -A INPUT -i tailscale0 -j ACCEPT 2>/dev/null || true
++
++  # eth0 inbound: management and web UI only
++  iptables -A INPUT -i eth0 -p tcp --dport 22  -m state --state NEW -j ACCEPT  # SSH
++  iptables -A INPUT -i eth0 -p tcp --dport 80  -m state --state NEW -j ACCEPT  # HTTP
++  iptables -A INPUT -i eth0 -p tcp --dport 443 -m state --state NEW -j ACCEPT  # HTTPS
++
++  # mDNS (5353/udp) and SSDP (1900/udp): opt-in network discovery.
++  # Create /boot/avahi.enable or /boot/ssdp.enable on the boot partition
++  # to permit inbound queries.  Without these flags, avahi/ssdpd still
++  # send announcements but cannot respond to queries. #442
++  [ -e /boot/avahi.enable ] && \
++    iptables -A INPUT -i eth0 -p udp --dport 5353 -j ACCEPT
++  [ -e /boot/ssdp.enable ] && \
++    iptables -A INPUT -i eth0 -p udp --dport 1900 -j ACCEPT
++}
++
++case "$1" in
++  start)
++    printf 'Starting firewall: '
++    set_rules
++    echo "OK"
++    ;;
++  stop)
++    printf 'Stopping firewall: '
++    iptables -F
++    iptables -X
++    iptables -P INPUT   ACCEPT
++    iptables -P FORWARD ACCEPT
++    iptables -P OUTPUT  ACCEPT
++    echo "OK"
++    ;;
++  restart|reload)
++    printf 'Reloading firewall: '
++    set_rules
++    echo "OK"
++    ;;
++  *)
++    echo "Usage: $0 {start|stop|restart}"
++    exit 1
++    ;;
++esac
+diff --git a/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S30eth b/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S30eth
+index 3b4ba246a..78abe27f7 100755
+--- a/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S30eth
++++ b/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S30eth
+@@ -29,15 +29,14 @@ start() {
+         arping -Dqc2 -Ieth0 $addr || continue
+         ip a add $inet brd + dev eth0
+         ip r add default via $gw dev eth0
+-        cat > /etc/resolve.conf << EOF
+-nameserver $gw
+-nameserver 8.8.8.8
+-nameserver 114.114.114.114
+-EOF
++        # Use only the gateway as DNS for static IP — hardcoded public DNS
++        # servers (8.8.8.8 etc.) override local resolvers and break name
++        # resolution in air-gapped / split-horizon networks. #301 #583
++        printf 'nameserver %s\n' "$gw" > /etc/resolv.conf
+         break
+       done &&
+       ip a show dev eth0|grep inet || (
+-        udhcpc -i eth0 -t 3 -T 1 -A 5 -b -p /run/udhcpc.eth0.pid &>/dev/null
++        udhcpc -i eth0 -t 3 -T 1 -A 5 -b -O 121 -p /run/udhcpc.eth0.pid &>/dev/null
+         ip a show dev eth0|grep inet
+       ) || (
+         # failed to apply dynamic addr, need a available static addr to visit the LAN
+@@ -46,7 +45,7 @@ EOF
+         ip a add $inet brd + dev eth0
+       ) || exit 1
+   else
+-    (udhcpc -i eth0 -t 10 -T 1 -A 5 -b -p /run/udhcpc.eth0.pid) &
++    (udhcpc -i eth0 -t 10 -T 1 -A 5 -b -O 121 -p /run/udhcpc.eth0.pid) &
+   fi
+
+   echo "OK"
+diff --git a/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S95nanokvm b/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S95nanokvm
+index d1dd31955..b278c9797 100755
+--- a/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S95nanokvm
++++ b/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S95nanokvm
+@@ -16,23 +16,10 @@ case "$1" in
+       echo "$first_uint$second_uint" > /device_key
+     fi
+
+-    # Set iptables rules (skip if already present)
+-    iptables -C INPUT -i eth0 -p tcp --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT 2>/dev/null || \
+-    iptables -A INPUT -i eth0 -p tcp --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT
+-
+-    iptables -C OUTPUT -o eth0 -p tcp --sport 80 -m state --state ESTABLISHED -j ACCEPT 2>/dev/null || \
+-    iptables -A OUTPUT -o eth0 -p tcp --sport 80 -m state --state ESTABLISHED -j ACCEPT
+-
+-    iptables -C OUTPUT -o eth0 -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT 2>/dev/null || \
+-    iptables -A OUTPUT -o eth0 -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
+-
+-    iptables -C INPUT -i eth0 -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT 2>/dev/null || \
+-    iptables -A INPUT -i eth0 -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
+-
+-    iptables -C OUTPUT -o eth0 -p tcp --sport 8000 -m state --state ESTABLISHED -j DROP 2>/dev/null || \
+-    iptables -A OUTPUT -o eth0 -p tcp --sport 8000 -m state --state ESTABLISHED -j DROP
+-
+     # Start services
++    # (Firewall is managed by S20firewall — rules were previously set here
++    # with no DROP default, wrong SSH direction, and a broken OUTPUT DROP
++    # for port 8000 that blocked responses rather than connections.)
+     cp -r /kvmapp/kvm_system /tmp/
+     /tmp/kvm_system/kvm_system &

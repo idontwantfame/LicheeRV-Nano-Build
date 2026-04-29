@@ -17,9 +17,12 @@ then
       # use all sdcard free space for data
       P2_END=$(parted -ms /dev/mmcblk0 unit MB print | awk -F: '/^2:/{gsub("MB","",$3); printf "%dMB", int($3)+1}')
       parted -s /dev/mmcblk0 "mkpart primary $P2_END 100%"
+      # Set MBR type to 0x07 (exFAT). parted 3.6 has no "exfat" type
+      # name — mkpart defaults to 0x83 (Linux), confusing macOS. #763
+      printf 't\n3\n7\nw\n' | fdisk /dev/mmcblk0 >/dev/null 2>&1 || true
       sleep 1
       # resize data filesystem
-      (mkfs.exfat /dev/mmcblk0p3) &
+      (mkfs.exfat -L data /dev/mmcblk0p3) &
       sleep 1
     fi
   fi

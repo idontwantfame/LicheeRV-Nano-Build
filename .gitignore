@@ -427,4 +427,6 @@ osdrv/extdrv/wireless/.tmp_4261/
 middleware/v2/lib
 host-tools/
 kvm/
+!buildroot/board/cvitek/SG200X/overlay/etc/kvm/
+!buildroot/board/cvitek/SG200X/overlay/etc/kvm/**
 .vscode*

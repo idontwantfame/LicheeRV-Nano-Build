@@ -7,10 +7,10 @@
 ACTION="$1"
 
 RESOLV_CONF="/etc/resolv.conf"
-if [ -e /boot/resolv.conf ]
-then
-	RESOLV_CONF="/etc/resolv.conf.dhcp"
-fi
+# Always write DHCP DNS to /etc/resolv.conf — the original redirect to
+# resolv.conf.dhcp when /boot/resolv.conf exists caused DHCP-assigned DNS
+# to be silently discarded, breaking resolution in networks where the
+# hardcoded fallbacks (8.8.8.8 etc.) are unreachable. #783 #784
 [ -e $RESOLV_CONF ] || touch $RESOLV_CONF
 [ -n "$broadcast" ] && BROADCAST="broadcast $broadcast"
 [ -n "$subnet" ] && NETMASK="netmask $subnet"
@@ -113,7 +113,9 @@ case "$ACTION" in
 
 		for i in $dns ; do
 			echo adding dns $i
-			echo "nameserver $i # $interface" >> $RESOLV_CONF
+			# No "# $interface" comment — musl's resolv parser treats
+			# everything after whitespace as part of the address. #783
+			echo "nameserver $i" >> $RESOLV_CONF
 		done
 		;;
 esac

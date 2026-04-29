@@ -14,7 +14,8 @@ PermitRootLogin yes
 
 AuthorizedKeysFile .ssh/authorized_keys
 
-AllowTcpForwarding yes
+# SSH tunnelling not needed for KVM access; creates a pivot if device is compromised. #270
+AllowTcpForwarding no
 TCPKeepAlive yes
 Compression delayed
 ClientAliveInterval 60

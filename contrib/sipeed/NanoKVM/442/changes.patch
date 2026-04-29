@@ -1,0 +1,113 @@
+diff --git a/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S50avahi-daemon b/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S50avahi-daemon
+index 32dc62f7a..ddd42243f 100755
+--- a/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S50avahi-daemon
++++ b/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S50avahi-daemon
+@@ -5,6 +5,10 @@
+ DAEMON=/usr/sbin/avahi-daemon
+ case "$1" in
+   start)
++    # mDNS announces the device on the LAN — opt-in for security.
++    # Create /boot/avahi.enable to activate. Without it, avahi still
++    # cannot receive queries because S20firewall blocks udp/5353. #442
++    [ -e /boot/avahi.enable ] || exit 0
+     $DAEMON -c || $DAEMON -D
+     ;;
+   stop)
+diff --git a/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S50ssdpd b/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S50ssdpd
+index 971b7f6ae..b0241bd13 100755
+--- a/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S50ssdpd
++++ b/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S50ssdpd
+@@ -12,6 +12,13 @@ DAEMON_ARGS=""
+
+ # shellcheck disable=SC2086
+ start() {
++  # SSDP announces the device on the LAN — opt-in for security.
++  # Create /boot/ssdp.enable to activate. #442
++  if [ ! -e /boot/ssdp.enable ]; then
++    printf 'Skipping %s (no /boot/ssdp.enable): ' "$DAEMON"
++    echo "OK"
++    return 0
++  fi
+   printf 'Starting %s: ' "$DAEMON"
+   if start-stop-daemon -S -q -p "$PIDFILE" -x "$DAEMON" -- $DAEMON_ARGS; then
+     echo "OK"
+diff --git a/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S20firewall b/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S20firewall
+new file mode 100755
+--- /dev/null
++++ b/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S20firewall
+@@ -0,0 +1,75 @@
++#!/bin/sh
++# S20firewall — stateful packet filter for NanoKVM
++#
++# Establishes a default-deny INPUT policy before any service binds.
++# Runs at S20: after network init (S10uuid, S30eth runs later but eth0
++# is up), before all application services (S50+).
++#
++# FORWARD DROP neutralises Tailscale's net.ipv4.ip_forward=1 sysctl
++# without touching sysctl — the kernel still consults iptables even
++# when ip_forward is on. #301
++
++set_rules() {
++  iptables -F
++  iptables -X
++
++  # Default policies
++  iptables -P INPUT   DROP
++  iptables -P FORWARD DROP
++  iptables -P OUTPUT  ACCEPT
++
++  # Loopback — always trusted
++  iptables -A INPUT -i lo -j ACCEPT
++
++  # Responses to our own outbound connections
++  iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
++
++  # ICMP echo — useful for connectivity diagnostics
++  iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
++
++  # USB RNDIS (usb0) — trusted point-to-point link; carries udhcpd (67/udp)
++  iptables -A INPUT -i usb0 -j ACCEPT
++
++  # Tailscale VPN — trusted encrypted tunnel; allow all inbound
++  iptables -A INPUT -i tailscale0 -j ACCEPT 2>/dev/null || true
++
++  # eth0 inbound: management and web UI only
++  iptables -A INPUT -i eth0 -p tcp --dport 22  -m state --state NEW -j ACCEPT  # SSH
++  iptables -A INPUT -i eth0 -p tcp --dport 80  -m state --state NEW -j ACCEPT  # HTTP
++  iptables -A INPUT -i eth0 -p tcp --dport 443 -m state --state NEW -j ACCEPT  # HTTPS
++
++  # mDNS (5353/udp) and SSDP (1900/udp): opt-in network discovery.
++  # Create /boot/avahi.enable or /boot/ssdp.enable on the boot partition
++  # to permit inbound queries.  Without these flags, avahi/ssdpd still
++  # send announcements but cannot respond to queries. #442
++  [ -e /boot/avahi.enable ] && \
++    iptables -A INPUT -i eth0 -p udp --dport 5353 -j ACCEPT
++  [ -e /boot/ssdp.enable ] && \
++    iptables -A INPUT -i eth0 -p udp --dport 1900 -j ACCEPT
++}
++
++case "$1" in
++  start)
++    printf 'Starting firewall: '
++    set_rules
++    echo "OK"
++    ;;
++  stop)
++    printf 'Stopping firewall: '
++    iptables -F
++    iptables -X
++    iptables -P INPUT   ACCEPT
++    iptables -P FORWARD ACCEPT
++    iptables -P OUTPUT  ACCEPT
++    echo "OK"
++    ;;
++  restart|reload)
++    printf 'Reloading firewall: '
++    set_rules
++    echo "OK"
++    ;;
++  *)
++    echo "Usage: $0 {start|stop|restart}"
++    exit 1
++    ;;
++esac

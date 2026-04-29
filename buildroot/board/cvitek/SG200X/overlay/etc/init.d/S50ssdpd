@@ -12,6 +12,13 @@ DAEMON_ARGS=""
 
 # shellcheck disable=SC2086
 start() {
+  # SSDP announces the device on the LAN — opt-in for security.
+  # Create /boot/ssdp.enable to activate. #442
+  if [ ! -e /boot/ssdp.enable ]; then
+    printf 'Skipping %s (no /boot/ssdp.enable): ' "$DAEMON"
+    echo "OK"
+    return 0
+  fi
   printf 'Starting %s: ' "$DAEMON"
   if start-stop-daemon -S -q -p "$PIDFILE" -x "$DAEMON" -- $DAEMON_ARGS; then
     echo "OK"

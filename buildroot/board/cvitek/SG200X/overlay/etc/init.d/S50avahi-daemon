@@ -5,6 +5,10 @@
 DAEMON=/usr/sbin/avahi-daemon
 case "$1" in
   start)
+    # mDNS announces the device on the LAN — opt-in for security.
+    # Create /boot/avahi.enable to activate. Without it, avahi still
+    # cannot receive queries because S20firewall blocks udp/5353. #442
+    [ -e /boot/avahi.enable ] || exit 0
     $DAEMON -c || $DAEMON -D
     ;;
   stop)

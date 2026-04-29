@@ -1,0 +1,29 @@
+diff --git a/buildroot/board/cvitek/SG200X/overlay/etc/ssh/sshd_config b/buildroot/board/cvitek/SG200X/overlay/etc/ssh/sshd_config
+index f65b72c44..56eb1b6a4 100644
+--- a/buildroot/board/cvitek/SG200X/overlay/etc/ssh/sshd_config
++++ b/buildroot/board/cvitek/SG200X/overlay/etc/ssh/sshd_config
+@@ -14,7 +14,8 @@ PermitRootLogin yes
+
+ AuthorizedKeysFile .ssh/authorized_keys
+
+-AllowTcpForwarding yes
++# SSH tunnelling not needed for KVM access; creates a pivot if device is compromised. #270
++AllowTcpForwarding no
+ TCPKeepAlive yes
+ Compression delayed
+ ClientAliveInterval 60
+diff --git a/buildroot/configs/nanokvm.fragment b/buildroot/configs/nanokvm.fragment
+index cbc894fc8..860126076 100644
+--- a/buildroot/configs/nanokvm.fragment
++++ b/buildroot/configs/nanokvm.fragment
+@@ -42,6 +42,10 @@ BR2_PACKAGE_SER2NET=y
+ # BR2_PACKAGE_MACCHANGER is not set
+ # BR2_PACKAGE_BIND is not set
+ # BR2_PACKAGE_PPPD is not set
++# tcpdump: packet capture on a production KVM appliance is a network
++# eavesdropping tool, not a diagnostic necessity — ssh+tcpdump+exfil is
++# a complete data exfiltration path if the device is compromised. #270
++# BR2_PACKAGE_TCPDUMP is not set
+
+ # ---- Redundant / superseded ----------------------------------------------
+ # BR2_PACKAGE_TINC is not set

@@ -1,0 +1,6 @@
+diff --git a/buildroot/board/cvitek/SG200X/overlay/etc/kvm/stop_ping b/buildroot/board/cvitek/SG200X/overlay/etc/kvm/stop_ping
+new file mode 100644
+--- /dev/null
++++ b/buildroot/board/cvitek/SG200X/overlay/etc/kvm/stop_ping
+@@ -0,0 +1 @@
++

@@ -1,0 +1,64 @@
+diff --git a/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S30eth b/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S30eth
+index 3b4ba246a..78abe27f7 100755
+--- a/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S30eth
++++ b/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S30eth
+@@ -29,15 +29,14 @@ start() {
+         arping -Dqc2 -Ieth0 $addr || continue
+         ip a add $inet brd + dev eth0
+         ip r add default via $gw dev eth0
+-        cat > /etc/resolve.conf << EOF
+-nameserver $gw
+-nameserver 8.8.8.8
+-nameserver 114.114.114.114
+-EOF
++        # Use only the gateway as DNS for static IP — hardcoded public DNS
++        # servers (8.8.8.8 etc.) override local resolvers and break name
++        # resolution in air-gapped / split-horizon networks. #301 #583
++        printf 'nameserver %s\n' "$gw" > /etc/resolv.conf
+         break
+       done &&
+       ip a show dev eth0|grep inet || (
+-        udhcpc -i eth0 -t 3 -T 1 -A 5 -b -p /run/udhcpc.eth0.pid &>/dev/null
++        udhcpc -i eth0 -t 3 -T 1 -A 5 -b -O 121 -p /run/udhcpc.eth0.pid &>/dev/null
+         ip a show dev eth0|grep inet
+       ) || (
+         # failed to apply dynamic addr, need a available static addr to visit the LAN
+@@ -46,7 +45,7 @@ EOF
+         ip a add $inet brd + dev eth0
+       ) || exit 1
+   else
+-    (udhcpc -i eth0 -t 10 -T 1 -A 5 -b -p /run/udhcpc.eth0.pid) &
++    (udhcpc -i eth0 -t 10 -T 1 -A 5 -b -O 121 -p /run/udhcpc.eth0.pid) &
+   fi
+
+   echo "OK"
+diff --git a/buildroot/board/cvitek/SG200X/overlay/usr/share/udhcpc/default.script b/buildroot/board/cvitek/SG200X/overlay/usr/share/udhcpc/default.script
+index b55b2c74e..4f838d8ac 100755
+--- a/buildroot/board/cvitek/SG200X/overlay/usr/share/udhcpc/default.script
++++ b/buildroot/board/cvitek/SG200X/overlay/usr/share/udhcpc/default.script
+@@ -7,10 +7,10 @@
+ ACTION="$1"
+
+ RESOLV_CONF="/etc/resolv.conf"
+-if [ -e /boot/resolv.conf ]
+-then
+-	RESOLV_CONF="/etc/resolv.conf.dhcp"
+-fi
++# Always write DHCP DNS to /etc/resolv.conf — the original redirect to
++# resolv.conf.dhcp when /boot/resolv.conf exists caused DHCP-assigned DNS
++# to be silently discarded, breaking resolution in networks where the
++# hardcoded fallbacks (8.8.8.8 etc.) are unreachable. #783 #784
+ [ -e $RESOLV_CONF ] || touch $RESOLV_CONF
+ [ -n "$broadcast" ] && BROADCAST="broadcast $broadcast"
+ [ -n "$subnet" ] && NETMASK="netmask $subnet"
+@@ -113,7 +113,9 @@ case "$ACTION" in
+
+ 		for i in $dns ; do
+ 			echo adding dns $i
+-			echo "nameserver $i # $interface" >> $RESOLV_CONF
++			# No "# $interface" comment — musl's resolv parser treats
++			# everything after whitespace as part of the address. #783
++			echo "nameserver $i" >> $RESOLV_CONF
+ 		done
+ 		;;
+ esac

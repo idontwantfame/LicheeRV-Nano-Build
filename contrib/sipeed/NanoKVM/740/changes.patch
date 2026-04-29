@@ -1,0 +1,21 @@
+diff --git a/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S03usbhid b/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S03usbhid
+index 45384fe52..38e6becb5 100755
+--- a/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S03usbhid
++++ b/buildroot/board/cvitek/SG200X/overlay/etc/init.d/S03usbhid
+@@ -73,6 +73,16 @@ start_usb_dev(){
+     echo e0 > functions/rndis.usb0/class
+     echo 01 > functions/rndis.usb0/subclass
+     echo 03 > functions/rndis.usb0/protocol
++    # Derive stable MACs from the device key so the host sees the same
++    # USB ethernet adapter identity across reboots. #740
++    _rndis_mac() {
++      printf '%s' "$1" | sha512sum | \
++        awk '{print "02:"substr($1,1,2)":"substr($1,3,2)":"substr($1,5,2)":"substr($1,7,2)":"substr($1,9,2)}'
++    }
++    KEY=$(cat /device_key 2>/dev/null || echo "nanokvm")
++    echo "$(_rndis_mac "${KEY}host")" > functions/rndis.usb0/host_addr
++    echo "$(_rndis_mac "${KEY}dev")"  > functions/rndis.usb0/dev_addr
++    unset _rndis_mac KEY
+   fi
+
+   # ncm (optional — create /boot/usb.ncm to enable USB ethernet via CDC NCM)

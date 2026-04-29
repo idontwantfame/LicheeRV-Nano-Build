@@ -29,15 +29,14 @@ start() {
         arping -Dqc2 -Ieth0 $addr || continue
         ip a add $inet brd + dev eth0
         ip r add default via $gw dev eth0
-        cat > /etc/resolve.conf << EOF
-nameserver $gw
-nameserver 8.8.8.8
-nameserver 114.114.114.114
-EOF
+        # Use only the gateway as DNS for static IP — hardcoded public DNS
+        # servers (8.8.8.8 etc.) override local resolvers and break name
+        # resolution in air-gapped / split-horizon networks. #301 #583
+        printf 'nameserver %s\n' "$gw" > /etc/resolv.conf
         break
       done &&
       ip a show dev eth0|grep inet || (
-        udhcpc -i eth0 -t 3 -T 1 -A 5 -b -p /run/udhcpc.eth0.pid &>/dev/null
+        udhcpc -i eth0 -t 3 -T 1 -A 5 -b -O 121 -p /run/udhcpc.eth0.pid &>/dev/null
         ip a show dev eth0|grep inet
       ) || (
         # failed to apply dynamic addr, need a available static addr to visit the LAN 
@@ -46,7 +45,7 @@ EOF
         ip a add $inet brd + dev eth0
       ) || exit 1
   else
-    (udhcpc -i eth0 -t 10 -T 1 -A 5 -b -p /run/udhcpc.eth0.pid) &
+    (udhcpc -i eth0 -t 10 -T 1 -A 5 -b -O 121 -p /run/udhcpc.eth0.pid) &
   fi
 
   echo "OK"
