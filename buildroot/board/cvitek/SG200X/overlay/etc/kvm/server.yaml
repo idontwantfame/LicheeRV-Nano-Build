@@ -1,9 +1,23 @@
 proto: https
-
+port:
+    http: 80
+    https: 443
 cert:
-  crt: /etc/kvm/server.crt
-  key: /etc/kvm/server.key
-
+    crt: /etc/kvm/server.crt
+    key: /etc/kvm/server.key
 logger:
-  level: info
-  file: /var/log/kvm
+    level: info
+    file: /var/log/kvm
+authentication: enable
+jwt:
+    secretKey: ""
+    refreshTokenDuration: 2678400
+    revokeTokensOnLogout: true
+stun: stun.l.google.com:19302
+turn:
+    turnAddr: ""
+    turnUser: ""
+    turnCred: ""
+security:
+    loginLockoutDuration: 0
+    loginMaxFailures: 5

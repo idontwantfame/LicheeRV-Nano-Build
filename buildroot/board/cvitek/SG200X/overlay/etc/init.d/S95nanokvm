@@ -8,12 +8,17 @@ case "$1" in
     # Copy sensor config if the file exists
     [ -f /mnt/data/sensor_cfg.ini.LT ] && cp /mnt/data/sensor_cfg.ini.LT /mnt/data/sensor_cfg.ini
 
-    # Generate unique device key
+    # Generate unique device key and web title
     if [ -f /sys/class/cvi-base/base_uid ]; then
       str_value=$(awk '{print $2}' /sys/class/cvi-base/base_uid)
       first_uint=$(echo "$str_value" | cut -d'_' -f1)
       second_uint=$(echo "$str_value" | cut -d'_' -f2)
-      echo "$first_uint$second_uint" > /device_key
+      device_key="${first_uint}${second_uint}"
+      echo "${device_key}" > /device_key
+      if [ ! -f /etc/kvm/web-title ]; then
+        suffix=$(printf '%s' "${device_key}" | tail -c 4 | tr '[:lower:]' '[:upper:]')
+        echo "NanoKVM-${suffix}" > /etc/kvm/web-title
+      fi
     fi
 
     # Generate self-signed TLS cert for HTTPS on first boot if not present.
