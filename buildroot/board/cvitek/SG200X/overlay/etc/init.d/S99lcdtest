@@ -5,22 +5,22 @@ case "$1" in
     printf "Starting lcdtest: "
     if [ -e /boot/lcdtest ]
     then
-	    touch /tmp/lcdtest
+      touch /tmp/lcdtest
     fi
     if [ -e /tmp/lcdtest ]
     then
-	    sleep 2
+      sleep 2
         fbpattern
     fi
     (
     while true
     do
-	    if [ ! -e /tmp/lcdtest ]
-	    then
-		break
-	    fi
-	date | fbbar 0 0xFFFFFFFF 0xFF000000
-	sleep 1
+      if [ ! -e /tmp/lcdtest ]
+      then
+        break
+      fi
+      date | fbbar 0 0xFFFFFFFF 0xFF000000
+      sleep 1
     done
     ) &
     [ $? = 0 ] && echo "OK" || echo "FAIL"

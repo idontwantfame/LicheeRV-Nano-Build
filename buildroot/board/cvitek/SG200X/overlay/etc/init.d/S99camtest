@@ -5,13 +5,13 @@ case "$1" in
     printf "Starting camtest: "
     if [ -e /boot/camtest ]
     then
-	    touch /tmp/camtest
+      touch /tmp/camtest
     fi
     if [ ! -e /tmp/camtest ]
     then
-	exit 0
+      exit 0
 else
-	sleep 1
+      sleep 1
     fi
     (nice -n 17 /mnt/system/usr/bin/sample_vio 6 &> /dev/null) &
     [ $? = 0 ] && echo "OK" || echo "FAIL"

@@ -5,17 +5,17 @@ case "$1" in
     printf "Starting modeltest: "
     if [ -e /boot/modeltest ]
     then
-	    touch /tmp/modeltest
+      touch /tmp/modeltest
     fi
     (
     while true
     do
-	    if [ ! -e /tmp/modeltest ]
-	    then
-		break
-	    fi
-	    cd /usr/bin/
-	nice -n 19 model_runner_test 10000
+      if [ ! -e /tmp/modeltest ]
+      then
+        break
+      fi
+      cd /usr/bin/
+      nice -n 19 model_runner_test 10000
     done
     ) &
     [ $? = 0 ] && echo "OK" || echo "FAIL"

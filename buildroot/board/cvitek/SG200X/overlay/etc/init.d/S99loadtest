@@ -5,18 +5,18 @@ case "$1" in
     printf "Starting loadtest: "
     if [ -e /boot/loadtest ]
     then
-	    touch /tmp/loadtest
+      touch /tmp/loadtest
     fi
     (
     while true
     do
-	    if [ ! -e /tmp/loadtest ]
-	    then
-		break
-	    fi
-	    colorbg=0xFF000000
-	    colorfg=0xFFFFFFFF
-	    echo "tpu_clk: $(cat /sys/kernel/debug/clk/clk_tpu/clk_rate)" | fbbar 16 $colorfg $colorbg
+      if [ ! -e /tmp/loadtest ]
+      then
+        break
+      fi
+      colorbg=0xFF000000
+      colorfg=0xFFFFFFFF
+      echo "tpu_clk: $(cat /sys/kernel/debug/clk/clk_tpu/clk_rate)" | fbbar 16 $colorfg $colorbg
             sleep 1
     done
     ) &

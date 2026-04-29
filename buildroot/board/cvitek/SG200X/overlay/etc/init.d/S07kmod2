@@ -2,13 +2,13 @@
 
 if [ "$1" = "start" ]
 then
-	. /etc/profile
-	printf "load kernel module: "
-	cd /mnt/system/ko/
-	insmod soph_wdt.ko
-	insmod soph_clock_cooling.ko
-	insmod soph_rtc.ko
-	insmod soph_mon.ko
-	echo "OK"
-	exit 0
+  . /etc/profile
+  printf "load kernel module: "
+  cd /mnt/system/ko/
+  insmod soph_wdt.ko
+  insmod soph_clock_cooling.ko
+  insmod soph_rtc.ko
+  insmod soph_mon.ko
+  echo "OK"
+  exit 0
 fi

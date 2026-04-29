@@ -2,9 +2,33 @@
 
 if [ "$1" = "start" ]
 then
-	. /etc/profile
-	printf "mounting filesystem : "
-	mkdir -p /boot
-	mount -t vfat /dev/mmcblk0p1 /boot
-	echo "OK"
+  . /etc/profile
+  printf "mounting filesystem : "
+  mkdir -p /boot
+  mount -t vfat /dev/mmcblk0p1 /boot
+  mount -t configfs configfs /sys/kernel/config
+  mount -t debugfs debugfs /sys/kernel/debug
+
+  if [ -e /boot/usb.disk0 ]
+  then
+    if [ ! -e /etc/kvm.disk0 ]
+    then
+      touch /etc/kvm.disk0
+      # use all sdcard free space for data
+      P2_END=$(parted -ms /dev/mmcblk0 unit MB print | awk -F: '/^2:/{gsub("MB","",$3); printf "%dMB", int($3)+1}')
+      parted -s /dev/mmcblk0 "mkpart primary $P2_END 100%"
+      sleep 1
+      # resize data filesystem
+      (mkfs.exfat /dev/mmcblk0p3) &
+      sleep 1
+    fi
+  fi
+
+  if [ -e /dev/mmcblk0p3 ]
+  then
+    mkdir -p /data
+    mount /dev/mmcblk0p3 /data
+  fi
+
+  echo "OK"
 fi
