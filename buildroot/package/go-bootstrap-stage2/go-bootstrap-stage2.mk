@@ -7,7 +7,7 @@
 # Use last Go version that go-bootstrap-stage1 can build: v1.19.x
 # See https://golang.org/doc/install/source#bootstrapFromSource
 GO_BOOTSTRAP_STAGE2_VERSION = 1.19.11
-GO_BOOTSTRAP_STAGE2_SITE = https://storage.googleapis.com/golang
+GO_BOOTSTRAP_STAGE2_SITE = https://dl.google.com/go
 GO_BOOTSTRAP_STAGE2_SOURCE = go$(GO_BOOTSTRAP_STAGE2_VERSION).src.tar.gz
 
 GO_BOOTSTRAP_STAGE2_LICENSE = BSD-3-Clause
@@ -48,6 +48,7 @@ define HOST_GO_BOOTSTRAP_STAGE2_INSTALL_CMDS
 
 	# The Go sources must be installed to the host/ tree for the Go stdlib.
 	cp -a $(@D)/src $(HOST_GO_BOOTSTRAP_STAGE2_ROOT)/
+	mkdir -p $(HOST_DIR)/../target
 endef
 
 $(eval $(host-generic-package))

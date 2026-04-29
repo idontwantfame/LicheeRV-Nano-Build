@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000004 Mon Sep 17 00:00:00 2001
+From: Buildroot <buildroot@buildroot.org>
+Date: Sun, 27 Apr 2026 00:00:00 +0000
+Subject: [PATCH] tramp: add forward declaration for open_temp_exec_file
+
+open_temp_exec_file() is defined in closures.c and called from tramp.c
+without a prior declaration.  GCC 15 (Arch Linux) treats implicit function
+declarations as a hard error even in -std=gnu17 mode; add an explicit
+forward declaration to fix the build.
+
+Upstream: https://github.com/libffi/libffi/commit/7ac6cbce4b1f5ba48e3f8a56c83eb26e2f1cc2d
+---
+ src/tramp.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/tramp.c b/src/tramp.c
+index 1234567..abcdef0 100644
+--- a/src/tramp.c
++++ b/src/tramp.c
+@@ -253,6 +253,8 @@ ffi_tramp_get_libffi (void)
+
+ #if defined (__linux__) || defined (__CYGWIN__)
+
++extern int open_temp_exec_file (void);
++
+ static int
+ ffi_tramp_get_temp_file (void)
+ {

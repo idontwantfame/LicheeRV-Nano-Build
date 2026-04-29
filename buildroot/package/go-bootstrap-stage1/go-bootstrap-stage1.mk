@@ -17,12 +17,14 @@ HOST_GO_BOOTSTRAP_STAGE1_ROOT = $(HOST_DIR)/lib/go-$(GO_BOOTSTRAP_STAGE1_VERSION
 
 # The go build system is not compatible with ccache, so use
 # HOSTCC_NOCCACHE. See https://github.com/golang/go/issues/11685.
+# Append -std=gnu17 because GCC 15 defaults to C23, where 'bool' is a
+# keyword; Go 1.4's cmd/dist/a.h has 'typedef int bool' which fails.
 HOST_GO_BOOTSTRAP_STAGE1_MAKE_ENV = \
 	GOOS=linux \
 	GOROOT_FINAL="$(HOST_GO_BOOTSTRAP_STAGE1_ROOT)" \
 	GOROOT="$(@D)" \
 	GOBIN="$(@D)/bin" \
-	CC=$(HOSTCC_NOCCACHE) \
+	CC="$(HOSTCC_NOCCACHE) -std=gnu17" \
 	CGO_ENABLED=0
 
 define HOST_GO_BOOTSTRAP_STAGE1_BUILD_CMDS

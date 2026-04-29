@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-BUSYBOX_VERSION = 1.36.1
+BUSYBOX_VERSION = 1.37.0
 BUSYBOX_SITE = https://www.busybox.net/downloads
 BUSYBOX_SOURCE = busybox-$(BUSYBOX_VERSION).tar.bz2
 BUSYBOX_LICENSE = GPL-2.0, bzip2-1.0.4
@@ -276,9 +276,10 @@ define BUSYBOX_INSTALL_INDIVIDUAL_BINARIES
 endef
 endif
 
-# Disable SHA1 and SHA256 HWACCEL to avoid segfault in init
-# with some x86 toolchains (mostly musl?).
-ifeq ($(BR2_i386),y)
+# SHA hwaccel uses x86-only cpuid/SHA-NI assembly.  Disable it on every
+# non-x86 architecture; on RISC-V enabling either option causes a compile
+# error (undeclared x86 register names in get_shaNI()).
+ifeq ($(BR2_i386)$(BR2_x86_64),)
 define BUSYBOX_MUSL_DISABLE_SHA_HWACCEL
 	$(call KCONFIG_DISABLE_OPT,CONFIG_SHA1_HWACCEL)
 	$(call KCONFIG_DISABLE_OPT,CONFIG_SHA256_HWACCEL)

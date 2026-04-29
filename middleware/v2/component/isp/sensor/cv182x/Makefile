@@ -278,7 +278,7 @@ techpoint_tp2863:
 lontium_lt6911:
 	$(call MAKE_SENSOR, ${@})
 
-all_sensor:
+all_sensor: $(sensor-y)
 	@$(MAKE) -f Makefile_full || exit 1;
 
 clean:
