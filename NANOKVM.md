@@ -246,13 +246,14 @@ updated for NanoKVM:
 | `usb.touchpad` | HID touchpad emulation |
 | `hostname.prefix` | Sets hostname prefix to `kvm` |
 
-## Remaining steps (not yet done)
+## Build and configuration notes
 
-- ~~**Step 3**: Write a minimal buildroot config fragment~~ — Done.
-  `buildroot/configs/nanokvm.fragment` is the version-controlled package delta.
-  `build-nanokvm.sh` applies it via `merge_config.sh -m` (shrink mode) or falls
-  back to a copy + manual ser2net injection (--no-shrink mode).
-- ~~**Step 4**: Audit the kernel config~~ — Done. Removed in `sg2002_nanokvm_sd_defconfig`:
+- **Buildroot config fragment** — `buildroot/configs/nanokvm.fragment` is the
+  version-controlled package delta. `build-nanokvm.sh` applies it via
+  `merge_config.sh -m` (shrink mode) or falls back to a copy + manual ser2net
+  injection (--no-shrink mode).
+
+- **Kernel config** — stripped in `sg2002_nanokvm_sd_defconfig`:
   - **WiFi/RF**: `CFG80211`, `RFKILL`, `AIC_WLAN_SUPPORT`, `USB_NET_RNDIS_WLAN`
     (`RTL8188FU` was already off; USB gadget RNDIS kept)
   - **Audio**: `SOUND` and all `SND_*` drivers (SoC codec, I2S, USB audio),
@@ -265,34 +266,32 @@ updated for NanoKVM:
     (`INPUT_UINPUT` kept — NanoKVM server uses it for HID gadget injection)
   - **LED**: `V4L2_FLASH_LED_CLASS` — no camera flash
   - **Network**: `IP_VS` (load balancer with all protocols/schedulers disabled)
-  - **Locale**: `NLS_ISO8859_1/2/3` — UTF-8 only
+  - **Locale**: `NLS_ISO8859_2/3` — ISO8859-1 kept (paired with CODEPAGE_437 for VFAT filename handling)
   - Left alone: `FB`/`FB_CVITEK` (ISP/VPU pipeline risk), LED GPIO framework
     (status LEDs), `USB_VIDEO_CLASS` (conservative)
-- ~~**Step 5**: Verify musl compatibility of the pre-built libs~~ — Done. The official
-  release tarball links against `ld-musl-riscv64xthead.so.1`; confirmed RISC-V64 musl.
-- ~~**Step 6**: First boot validation~~ — Done. Two successful builds completed.
-- ~~**OpenSSL hardening**~~ — Done. Added to `nanokvm.fragment`: `ENABLE_SSL3`,
+
+- **musl compatibility** — the official release tarball links against
+  `ld-musl-riscv64xthead.so.1`; confirmed RISC-V64 musl.
+
+- **OpenSSL hardening** — added to `nanokvm.fragment`: `ENABLE_SSL3`,
   `ENABLE_WEAK_SSL`, and `UNSECURE` (unit-test/debug infrastructure) disabled.
   SSLv3 (POODLE) and weak cipher suites have no use on a production KVM appliance.
 
-## Package security updates (to do)
+- **BusyBox applet tuning** — `buildroot/board/cvitek/SG200X/nanokvm.busybox.config`
+  layers on top of the shared `busybox-extra.config`. Removes headless-irrelevant
+  applets (vi, less, bc/dc, VT console tools, fbset, runit suite) and adds
+  `watch`, `timeout`, `stty`, and `netstat -p` for SSH-based administration.
+
+## Package security updates
 
 The toolchain and kernel are frozen by the SoC vendor and cannot be bumped.
-The following application packages can be updated with a version + hash change
-in their `.mk` / `.hash` files — patches need a rebase check but are small.
+The following application packages have been updated:
 
-| Package | Current | Action | Priority |
-|---------|---------|--------|----------|
-| ~~**OpenSSH**~~ | ~~9.6p1~~ | Done — bumped to 9.9p2 | ~~**High** — CVE-2024-6387 (regreSSHion, RCE in sshd) affects ≤ 9.7p1~~ |
-| ~~**OpenSSL**~~ | ~~3.1.4~~ | Done — bumped to 3.5.6 LTS (3.1.x EOL); 2 upstreamed patches dropped, 1 non-MMU patch dropped (irrelevant on SG2002) | ~~**High**~~ |
-| ~~**BusyBox**~~ | ~~1.36.1~~ | Done — bumped to 1.37.0 | ~~Low — stability / minor CVEs~~ |
-
-Process for each:
-1. Update `VERSION` in `buildroot/package/<pkg>/<pkg>.mk`
-2. Fetch the SHA256 of the new tarball from the project's download page
-3. Update `buildroot/package/<pkg>/<pkg>.hash`
-4. Verify patches still apply: `patch --dry-run -p1 < *.patch` against new source
-5. Delete the package stamp and rebuild: `rm buildroot/output/build/<pkg>-*/.stamp_*`
+| Package | Was | Now | Notes |
+|---------|-----|-----|-------|
+| **OpenSSH** | 9.6p1 | 9.6p1 + CVE patches | Stayed on 9.6p1; backported CVE-2024-6387 (regreSSHion, RCE) and CVE-2025-26466 (pre-auth DoS) as patches rather than bumping the version |
+| **OpenSSL** | 3.1.4 | 3.5.6 LTS | 3.1.x EOL; 2 upstreamed patches dropped, 1 non-MMU patch dropped (irrelevant on SG2002) |
+| **BusyBox** | 1.36.1 | 1.37.0 | Stability / minor CVEs; SHA1/SHA256 HWACCEL guard extended to all non-x86 |
 
 Packages that **cannot** be updated: the cross-compiler (GCC 10.2.0, T-Head
 Xuantie-900 proprietary fork), Linux 5.10.4 (SG2002-specific patch set), and
