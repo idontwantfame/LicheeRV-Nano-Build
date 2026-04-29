@@ -1,0 +1,9 @@
+proto: https
+
+cert:
+  crt: /etc/kvm/server.crt
+  key: /etc/kvm/server.key
+
+logger:
+  level: info
+  file: /var/log/kvm
