@@ -1,0 +1,102 @@
+# NanoKVM buildroot config fragment
+#
+# Applied on top of cvitek_SG200X_musl_riscv64_defconfig by build-nanokvm.sh
+# (default / --shrink mode).  Adds runtime dependencies and disables packages
+# that serve no purpose on NanoKVM hardware.
+#
+# The NanoKVM application package itself (nanokvm-prebuilt or nanokvm-sg200x)
+# is appended by the build script so that both --prebuilt and --from-source
+# modes share this common fragment.
+#
+# Rootfs size is NOT set here — it must match the partition XML and is kept
+# as the single ROOTFS_SIZE_MB variable in build-nanokvm.sh.
+
+# ---- Post-build cleanup -----------------------------------------------------
+# Removes Sophgo middleware dev/test binaries and other irrelevant files that
+# the base defconfig builds but NanoKVM never uses at runtime.
+BR2_ROOTFS_POST_BUILD_SCRIPT="board/cvitek/SG200X/nanokvm-post-build.sh"
+
+# ---- NanoKVM runtime dependency ------------------------------------------
+BR2_PACKAGE_SER2NET=y
+
+# ---- No hardware on NanoKVM PCIe/USB -------------------------------------
+# BR2_PACKAGE_ANDROID_TOOLS is not set
+# BR2_PACKAGE_BLUEZ5_UTILS is not set
+# BR2_PACKAGE_BLUEZ_ALSA is not set
+# BR2_PACKAGE_BLUEZ_TOOLS is not set
+# BR2_PACKAGE_WPA_SUPPLICANT is not set
+# BR2_PACKAGE_WIRELESS_TOOLS is not set
+# BR2_PACKAGE_IW is not set
+# BR2_PACKAGE_HOSTAPD is not set
+# BR2_PACKAGE_FBSET is not set
+# BR2_PACKAGE_ALSA_UTILS is not set
+
+# ---- Security risk — attack surface with no benefit ----------------------
+# BR2_PACKAGE_AIRCRACK_NG is not set
+# BR2_PACKAGE_MACCHANGER is not set
+# BR2_PACKAGE_BIND is not set
+# BR2_PACKAGE_PPPD is not set
+
+# ---- Redundant / superseded ----------------------------------------------
+# BR2_PACKAGE_TINC is not set
+# BR2_PACKAGE_HAVEGED is not set
+# BR2_PACKAGE_IPMITOOL is not set
+# BR2_PACKAGE_SQLITE is not set
+# BR2_PACKAGE_FFMPEG is not set
+# BR2_PACKAGE_MPG123 is not set
+# BR2_PACKAGE_LIBQRENCODE is not set
+# BR2_PACKAGE_OPENCV4 is not set
+# BR2_PACKAGE_LIBWEBSOCKETS is not set
+
+# ---- Development and debug tools -----------------------------------------
+# BR2_PACKAGE_GDB is not set
+# BR2_PACKAGE_HOST_GDB is not set
+# BR2_PACKAGE_STRACE is not set
+# BR2_PACKAGE_EVTEST is not set
+# BR2_PACKAGE_LIBEVDEV is not set
+# BR2_PACKAGE_SPIDEV_TEST is not set
+# BR2_PACKAGE_TMUX is not set
+# BR2_PACKAGE_SETSERIAL is not set
+# BR2_PACKAGE_EXPECT is not set
+# BR2_PACKAGE_TCL is not set
+# BR2_PACKAGE_SQUASHFS is not set
+
+# ---- Benchmarks and toys -------------------------------------------------
+# BR2_PACKAGE_DHRYSTONE is not set
+# BR2_PACKAGE_COREMARK is not set
+# BR2_PACKAGE_RAMSPEED is not set
+# BR2_PACKAGE_STRESS_NG is not set
+# BR2_PACKAGE_IPERF3 is not set
+# BR2_PACKAGE_ASCII_INVADERS is not set
+# BR2_PACKAGE_GNUCHESS is not set
+# BR2_PACKAGE_SL is not set
+# BR2_PACKAGE_XORCURSES is not set
+# BR2_PACKAGE_LCDTEST is not set
+
+# ---- Redundant transfer tools --------------------------------------------
+# BR2_PACKAGE_MOSH is not set
+# BR2_PACKAGE_LRZSZ is not set
+# BR2_PACKAGE_VSFTPD is not set
+# BR2_PACKAGE_LFTP is not set
+
+# ---- Dead-weight services ------------------------------------------------
+# dnsmasq: S80dnsmasq exits immediately — no /etc/dnsmasq.conf is shipped.
+# RNDIS DHCP is handled by udhcpd via S30gadget_nic, not dnsmasq.
+# BR2_PACKAGE_DNSMASQ is not set
+#
+# alsa-lib retained: libcvi_audio.so in /mnt/system/usr/lib/ has a runtime
+# dependency on libasound.so; removing alsa-lib prevents kvm_system from
+# starting.  822 KB cost is acceptable to keep the KVM pipeline functional.
+
+# ---- OpenSSL: strip insecure/debug build options -------------------------
+# SSLv3 (POODLE), weak cipher suites, and debug/unit-test infrastructure
+# have no legitimate use on a production KVM appliance.
+# BR2_PACKAGE_LIBOPENSSL_ENABLE_SSL3 is not set
+# BR2_PACKAGE_LIBOPENSSL_ENABLE_WEAK_SSL is not set
+# BR2_PACKAGE_LIBOPENSSL_UNSECURE is not set
+
+# ---- Python runtime (not used by NanoKVM) --------------------------------
+# Disabling the top-level Python3 symbol cascades to all sub-packages via
+# Buildroot dependency resolution.  NanoKVM-Server is a Go binary; no Python
+# runs at runtime.
+# BR2_PACKAGE_PYTHON3 is not set
