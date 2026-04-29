@@ -1,0 +1,12 @@
+config BR2_PACKAGE_NANOKVM_PREBUILT
+	bool "nanokvm-prebuilt"
+	help
+	  Downloads the official NanoKVM pre-compiled release tarball from
+	  Sipeed's GitHub releases and installs it directly into /kvmapp/.
+
+	  Includes: NanoKVM-Server binary, web UI, all Sophgo dl_lib .so
+	  files, kvm_system, jpg_stream, and system init scripts.
+
+	  Use this instead of nanokvm-sg200x + nanokvm-server to skip the
+	  Go/React source build entirely. Switch to nanokvm-sg200x if you
+	  need to build from source or patch the server.

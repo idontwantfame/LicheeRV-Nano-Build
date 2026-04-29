@@ -1,0 +1,8 @@
+config BR2_PACKAGE_NANOKVM_SG200X
+	bool "nanokvm-sg200x"
+	select BR2_PACKAGE_NANOKVM_SERVER
+	help
+	  NanoKVM application bundle for SG200x hardware.
+	  Downloads the pre-assembled skeleton (init scripts, kvm_system
+	  stubs, sensor configs) and installs the NanoKVM-Server binary
+	  and web assets built by nanokvm-server into /kvmapp/.

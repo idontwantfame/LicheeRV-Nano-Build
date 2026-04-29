@@ -1,0 +1,13 @@
+config BR2_PACKAGE_NANOKVM_SERVER
+	bool "nanokvm-server"
+	depends on BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS
+	depends on BR2_PACKAGE_HOST_NODEJS_BIN_ARCH_SUPPORTS
+	select BR2_PACKAGE_HOST_GO
+	select BR2_PACKAGE_HOST_NODEJS
+	select BR2_PACKAGE_HOST_NODEJS_COREPACK
+	select BR2_PACKAGE_HOST_PYTHON3
+	select BR2_PACKAGE_PYTHON3_SSL
+	help
+	  NanoKVM server (Go backend + React web UI).
+	  Builds NanoKVM-Server binary and web assets from source.
+	  Requires RISC-V musl toolchain and middleware libraries.
