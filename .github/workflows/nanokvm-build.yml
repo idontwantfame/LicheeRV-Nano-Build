@@ -1,0 +1,98 @@
+name: nanokvm-build
+
+on:
+  workflow_dispatch:
+    inputs:
+      clean:
+        description: 'Wipe build artifacts before building (keeps dl/ cache)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    container: archlinux:latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          max-size: "10G"
+          create-symlink: true
+          key: archlinux-nanokvm
+
+      - name: Install build dependencies
+        run: |
+          pacman-key --init
+          pacman -Syu --noconfirm \
+            github-cli gcc clang flex bison ccache \
+            pkg-config ninja automake autoconf libtool \
+            wget curl git bc squashfs-tools \
+            rsync jq cmake openssh tree parallel \
+            python3 python-pip tcl scons dtc cpio \
+            fakeroot fakechroot bzr ncurses cvs file \
+            mercurial unzip subversion gawk diffstat \
+            texinfo chrpath socat zstd \
+            confuse dosfstools mtools gettext e2fsprogs \
+            which make patch perl help2man
+          echo en_US.UTF-8 UTF-8 >> /etc/locale.gen
+          locale-gen
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: src
+
+      - name: Cache Buildroot downloads
+        uses: actions/cache@v4
+        with:
+          path: src/buildroot/dl
+          key: buildroot-dl-${{ github.sha }}
+          restore-keys: |
+            buildroot-dl-
+
+      - name: Download host-tools
+        run: |
+          cd src
+          wget -q https://sophon-file.sophon.cn/sophon-prod-s3/drive/23/03/07/16/host-tools.tar.gz
+          tar xf host-tools.tar.gz
+          rm host-tools.tar.gz
+
+      - name: Build NanoKVM image
+        env:
+          PATH: /usr/bin/core_perl:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        run: |
+          cd src
+          ARGS=""
+          if [ "${{ inputs.clean }}" = "true" ]; then ARGS="--clean"; fi
+          bash ./build-nanokvm.sh $ARGS
+
+      - name: Extract release version
+        if: success()
+        run: |
+          IMG=$(ls src/install/soc_sg2002_nanokvm_sd/images/*.img | head -1)
+          echo "VERSION=$(basename "$IMG" .img)" >> $GITHUB_ENV
+
+      - name: Upload image artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nanokvm-${{ env.VERSION }}
+          path: |
+            src/install/soc_sg2002_nanokvm_sd/images/*.img
+            src/install/soc_sg2002_nanokvm_sd/*.bin
+
+      - name: Create GitHub release
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ env.VERSION }}" \
+            src/install/soc_sg2002_nanokvm_sd/images/*.img \
+            src/install/soc_sg2002_nanokvm_sd/*.bin \
+            --repo "${{ github.repository }}" \
+            --title "NanoKVM ${{ env.VERSION }}" \
+            --notes "Built from ${{ github.sha }}"
