@@ -1,60 +1,33 @@
 # LicheeRV-Nano-Build
 
-# download source
+Fork of the upstream Sipeed LicheeRV-Nano-Build, extended to support building a
+minimal NanoKVM image for the SG2002 SoC. Minimal means the default Buildroot
+package set is trimmed: tools irrelevant to a KVM appliance (benchmarks, audio,
+Bluetooth, WiFi stack, games, Python, debug utilities) are removed to keep the
+rootfs lean and focused. Changes include a dedicated sg2002_nanokvm_sd board, a
+build-nanokvm.sh script with pre-built binary and from-source modes, Go toolchain
+download fixes, and a Buildroot shrink pass.
+
+See [NANOKVM.md](NANOKVM.md) for the full NanoKVM build guide.
+
+---
+
+## Prerequisites
+
+Clone this repository and the required host tools:
 
 ```
-git clone https://github.com/sipeed/LicheeRV-Nano-Build --depth=1
+git clone <this-repo-url> --depth=1
+
 cd LicheeRV-Nano-Build
+
 git clone https://github.com/sophgo/host-tools --depth=1
 ```
 
-## host environment
+## Building NanoKVM
 
-you can use container:
-
-```
-cd host/ubuntu
-docker build -t licheervnano-build-ubuntu .
-docker run --name licheervnano-build-ubuntu licheervnano-build-ubuntu
-docker export licheervnano-build-ubuntu | sqfstar licheervnano-build-ubuntu.sqfs
-singularity shell -e licheervnano-build-ubuntu.sqfs
-```
-
-# build it
+See [NANOKVM.md](NANOKVM.md) for the full guide. Quick start:
 
 ```
-source build/cvisetup.sh
-# C906:
-defconfig sg2002_licheervnano_sd
-# A53:
-# defconfig sg2002_licheea53nano_sd
-build_all
-```
-
-# build fail
-
-on some system, qt5svg or qt5base will build failed on first build, please retry command:
-
-```
-build_all
-```
-
-# how to modify image after build:
-
-```
-# first partition
-touch wifi.sta
-mcopy -i install/xxx/xxx.img@@1s wifi.sta ::/
-
-# second partition
-./host/mount_ext4.sh install/xxx/xxx.img mountpoint
-cd mountpoint
-touch xxx
-```
-
-# logo
-
-```
-./host/make_logo.sh input.jpeg logo.jpeg
-mcopy -i install/xxx/xxx.img@@1s logo.jpeg ::/
+./build-nanokvm.sh
 ```

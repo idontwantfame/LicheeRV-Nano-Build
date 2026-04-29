@@ -1,0 +1,6 @@
+<physical_partition type="sd">
+    <!-- BOOT: FAT partition for kernel, u-boot, and USB gadget marker files -->
+    <partition label="BOOT" size_in_kb="80960" readonly="false" file="boot.sd"/>
+    <!-- ROOTFS: size_in_kb is rewritten by build-nanokvm.sh from ROOTFS_SIZE_MB. Do not edit by hand. -->
+    <partition label="ROOTFS" size_in_kb="1025024" readonly="false" file="rootfs.sd" />
+</physical_partition>

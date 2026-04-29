@@ -27,9 +27,12 @@ cp -fv ${output_dir}/fip.bin ${output_dir}/input/
 cp -fv ${output_dir}/rawimages/boot.sd ${output_dir}/input/rawimages/
 cp -fv ${output_dir}/rawimages/rootfs.sd ${output_dir}/input/
 touch ${output_dir}/input/usb.dev
-touch ${output_dir}/input/usb.ncm
-touch ${output_dir}/input/usb.rndis
-touch ${output_dir}/input/wifi.sta
+touch ${output_dir}/input/usb.rndis0
+echo /dev/mmcblk0p3 > ${output_dir}/input/usb.disk0
+touch ${output_dir}/input/usb.keyboard
+touch ${output_dir}/input/usb.mouse
+touch ${output_dir}/input/usb.touchpad
+echo -n kvm > ${output_dir}/input/hostname.prefix
 touch ${output_dir}/input/gt9xx
 touch ${output_dir}/input/fb
 echo ${image} > ${output_dir}/input/ver
