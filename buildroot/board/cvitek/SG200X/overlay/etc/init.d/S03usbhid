@@ -14,9 +14,14 @@ start_usb_dev(){
   echo 0x3346 > idVendor
   echo 0x1009 > idProduct
   mkdir strings/0x409
-  # echo '0' > strings/0x409/serialnumber
+  cat /device_key > strings/0x409/serialnumber
   echo 'sipeed' > strings/0x409/manufacturer
   echo 'NanoKVM' > strings/0x409/product
+
+  # IAD composite device class — required for Windows to enumerate HID + RNDIS/NCM together
+  echo 0xef > bDeviceClass
+  echo 0x02 > bDeviceSubClass
+  echo 0x01 > bDeviceProtocol
 
   mkdir configs/c.1
   echo 0xA0 > configs/c.1/bmAttributes
@@ -59,6 +64,23 @@ start_usb_dev(){
   echo 6 > functions/hid.GS2/report_length
   echo -ne \\x05\\x01\\x09\\x02\\xa1\\x01\\x09\\x01\\xa1\\x00\\x05\\x09\\x19\\x01\\x29\\x03\\x15\\x00\\x25\\x01\\x95\\x03\\x75\\x01\\x81\\x02\\x95\\x01\\x75\\x05\\x81\\x01\\x05\\x01\\x09\\x30\\x09\\x31\\x15\\x00\\x26\\xff\\x7f\\x35\\x00\\x46\\xff\\x7f\\x75\\x10\\x95\\x02\\x81\\x02\\x05\\x01\\x09\\x38\\x15\\x81\\x25\\x7f\\x35\\x00\\x45\\x00\\x75\\x08\\x95\\x01\\x81\\x06\\xc0\\xc0 > functions/hid.GS2/report_desc
   ln -s functions/hid.GS2 configs/c.1
+
+  # rndis (optional — create /boot/usb.rndis to enable USB ethernet)
+  if [ -e /boot/usb.rndis ]
+  then
+    mkdir functions/rndis.usb0
+    ln -s functions/rndis.usb0 configs/c.1/
+    echo e0 > functions/rndis.usb0/class
+    echo 01 > functions/rndis.usb0/subclass
+    echo 03 > functions/rndis.usb0/protocol
+  fi
+
+  # ncm (optional — create /boot/usb.ncm to enable USB ethernet via CDC NCM)
+  if [ -e /boot/usb.ncm ]
+  then
+    mkdir functions/ncm.usb0
+    ln -s functions/ncm.usb0 configs/c.1/
+  fi
 
   ls /sys/class/udc/ | cat > UDC
   echo device > /proc/cviusb/otg_role

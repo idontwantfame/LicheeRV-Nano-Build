@@ -239,7 +239,7 @@ updated for NanoKVM:
 | File | Purpose |
 |------|---------|
 | `usb.dev` | USB device mode (always present) |
-| `usb.rndis0` | RNDIS network interface — SSH over USB |
+| `usb.rndis` | RNDIS network interface — SSH over USB |
 | `usb.disk0` | Mass storage — exposes `/dev/mmcblk0p3` over USB |
 | `usb.keyboard` | HID keyboard emulation |
 | `usb.mouse` | HID mouse emulation |

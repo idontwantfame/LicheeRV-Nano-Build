@@ -27,7 +27,7 @@ cp -fv ${output_dir}/fip.bin ${output_dir}/input/
 cp -fv ${output_dir}/rawimages/boot.sd ${output_dir}/input/rawimages/
 cp -fv ${output_dir}/rawimages/rootfs.sd ${output_dir}/input/
 touch ${output_dir}/input/usb.dev
-touch ${output_dir}/input/usb.rndis0
+touch ${output_dir}/input/usb.rndis
 echo /dev/mmcblk0p3 > ${output_dir}/input/usb.disk0
 touch ${output_dir}/input/usb.keyboard
 touch ${output_dir}/input/usb.mouse
