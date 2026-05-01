@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       clean:
-        description: 'Wipe build artifacts before building (keeps dl/ cache)'
+        description: "Wipe build artifacts before building (keeps dl/ cache)"
         required: false
         default: false
         type: boolean
@@ -17,20 +17,13 @@ jobs:
       contents: write
 
     steps:
-      - name: ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-        with:
-          max-size: "10G"
-          create-symlink: true
-          key: archlinux-nanokvm
-
       - name: Install build dependencies
         run: |
           pacman-key --init
           pacman -Syu --noconfirm \
             github-cli gcc clang flex bison ccache \
             pkg-config ninja automake autoconf libtool \
-            wget curl git bc squashfs-tools \
+            curl git bc squashfs-tools \
             rsync jq cmake openssh tree parallel \
             python3 python-pip tcl scons dtc cpio \
             fakeroot fakechroot bzr ncurses cvs file \
@@ -46,6 +39,13 @@ jobs:
         with:
           path: src
 
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          max-size: "10G"
+          directory: /root/.buildroot-ccache
+          key: archlinux-nanokvm
+
       - name: Cache Buildroot downloads
         uses: actions/cache@v4
         with:
@@ -54,12 +54,12 @@ jobs:
           restore-keys: |
             buildroot-dl-
 
-      - name: Download host-tools
-        run: |
-          cd src
-          wget -q https://sophon-file.sophon.cn/sophon-prod-s3/drive/23/03/07/16/host-tools.tar.gz
-          tar xf host-tools.tar.gz
-          rm host-tools.tar.gz
+      - name: Checkout host-tools
+        uses: actions/checkout@v4
+        with:
+          repository: sophgo/host-tools
+          path: src/host-tools
+          fetch-depth: 1
 
       - name: Build NanoKVM image
         env:
@@ -83,7 +83,6 @@ jobs:
           name: nanokvm-${{ env.VERSION }}
           path: |
             src/install/soc_sg2002_nanokvm_sd/images/*.img
-            src/install/soc_sg2002_nanokvm_sd/*.bin
 
       - name: Create GitHub release
         if: success()
@@ -92,7 +91,6 @@ jobs:
         run: |
           gh release create "${{ env.VERSION }}" \
             src/install/soc_sg2002_nanokvm_sd/images/*.img \
-            src/install/soc_sg2002_nanokvm_sd/*.bin \
             --repo "${{ github.repository }}" \
             --title "NanoKVM ${{ env.VERSION }}" \
             --notes "Built from ${{ github.sha }}"

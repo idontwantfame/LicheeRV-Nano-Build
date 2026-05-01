@@ -159,7 +159,7 @@ dd if=install/soc_sg2002_nanokvm_sd/*.img of=/dev/sdX bs=4M status=progress
 |---------|-----|
 | `nanokvm-prebuilt` | NanoKVM application (`/kvmapp/`) — official release tarball |
 | `ser2net` | Bridges UART to TCP — allows serial console access to the controlled machine |
-| `openssh` | SSH management access to the KVM device itself |
+| `openssh` | SSH management access to the KVM device itself — **disabled by default**; enable permanently with `S50sshd permanent_on`, or drop a `start_ssh_once` file on the boot partition for a single boot |
 | `iptables` | NanoKVM uses it for SSH port forwarding |
 | USB HID gadget | Keyboard + mouse emulation (kernel, already compiled in) |
 | USB RNDIS gadget | Network-over-USB for laptop-only setups (kernel, already compiled in) |

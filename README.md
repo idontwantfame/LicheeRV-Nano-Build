@@ -1,33 +1,40 @@
-# LicheeRV-Nano-Build
+# LicheeRV-Nano-Build for NanoKVM Cube
 
-Fork of the upstream Sipeed LicheeRV-Nano-Build, extended to support building a
-minimal NanoKVM image for the SG2002 SoC. Minimal means the default Buildroot
-package set is trimmed: tools irrelevant to a KVM appliance (benchmarks, audio,
-Bluetooth, WiFi stack, games, Python, debug utilities) are removed to keep the
-rootfs lean and focused. Changes include a dedicated sg2002_nanokvm_sd board, a
-build-nanokvm.sh script with pre-built binary and from-source modes, Go toolchain
-download fixes, and a Buildroot shrink pass.
+## How & Why?
 
-See [NANOKVM.md](NANOKVM.md) for the full NanoKVM build guide.
+### How?
+
+Grabbed https://github.com/sipeed/LicheeRV-Nano-Build and just used Claude to do crap for me that I would do anyway which was just faster...
+
+### Why?
+
+Because we know original image is 💩💩💩.
+
+It has lots of crap that doesn't need to be there, so it was trimmed, patched, and fixed.
+
+| Metric | Old Image | New Image |
+| -------- | ------- | ------- |
+| Bundled KVM app version | 2.2.0 | 2.4.0 |
+| HTTPS enabled by default | No | Yes |
+| Root space used | 750M | 313M |
+| Partition size | 8G | 1G |
+| RAM used after boot | ~35M | ~30M |
+| trivy rootfs | many | 0 |
+
+See [NANOKVM.md](NANOKVM.md) for all the details and build guide.
 
 ---
 
-## Prerequisites
+## Quick start
 
 Clone this repository and the required host tools:
 
-```
+```bash
 git clone <this-repo-url> --depth=1
-
 cd LicheeRV-Nano-Build
-
 git clone https://github.com/sophgo/host-tools --depth=1
-```
-
-## Building NanoKVM
-
-See [NANOKVM.md](NANOKVM.md) for the full guide. Quick start:
-
-```
+cd host/archlinux
+docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) -t licheervnano-build-archlinux .
+docker run --rm -it -v "$(pwd)/../..":/build licheervnano-build-archlinux bash
 ./build-nanokvm.sh
 ```
