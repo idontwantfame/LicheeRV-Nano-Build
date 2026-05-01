@@ -30,7 +30,7 @@ See [NANOKVM.md](NANOKVM.md) for all the details and build guide.
 Clone this repository and the required host tools:
 
 ```bash
-git clone <this-repo-url> --depth=1
+git clone https://github.com/idontwantfame/LicheeRV-Nano-Build --depth=1
 cd LicheeRV-Nano-Build
 git clone https://github.com/sophgo/host-tools --depth=1
 cd host/archlinux

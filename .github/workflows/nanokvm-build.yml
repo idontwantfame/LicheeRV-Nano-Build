@@ -9,6 +9,9 @@ on:
         default: false
         type: boolean
 
+env:
+  FORCE_UNSAFE_CONFIGURE: 1
+
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -30,7 +33,7 @@ jobs:
             mercurial unzip subversion gawk diffstat \
             texinfo chrpath socat zstd \
             confuse dosfstools mtools gettext e2fsprogs \
-            which make patch perl help2man
+            which make patch perl help2man wget
           echo en_US.UTF-8 UTF-8 >> /etc/locale.gen
           locale-gen
 
@@ -39,20 +42,20 @@ jobs:
         with:
           path: src
 
-      - name: ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-        with:
-          max-size: "10G"
-          directory: /root/.buildroot-ccache
-          key: archlinux-nanokvm
+      # - name: ccache
+      #   uses: hendrikmuhs/ccache-action@v1.2
+      #   with:
+      #     max-size: "10G"
+      #     directory: /root/.buildroot-ccache
+      #     key: archlinux-nanokvm
 
-      - name: Cache Buildroot downloads
-        uses: actions/cache@v4
-        with:
-          path: src/buildroot/dl
-          key: buildroot-dl-${{ github.sha }}
-          restore-keys: |
-            buildroot-dl-
+      # - name: Cache Buildroot downloads
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: src/buildroot/dl
+      #     key: buildroot-dl-${{ github.sha }}
+      #     restore-keys: |
+      #       buildroot-dl-
 
       - name: Checkout host-tools
         uses: actions/checkout@v4
@@ -62,6 +65,7 @@ jobs:
           fetch-depth: 1
 
       - name: Build NanoKVM image
+        id: build_nanokvm
         env:
           PATH: /usr/bin/core_perl:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
         run: |
@@ -69,6 +73,12 @@ jobs:
           ARGS=""
           if [ "${{ inputs.clean }}" = "true" ]; then ARGS="--clean"; fi
           bash ./build-nanokvm.sh $ARGS
+
+      - name: Show build errors
+        if: ${{ failure() && steps.build_nanokvm.outcome == 'failure' }}
+        run: |
+          cd src
+          bash ./show-build-errors.sh
 
       - name: Extract release version
         if: success()

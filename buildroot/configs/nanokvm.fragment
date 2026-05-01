@@ -47,6 +47,11 @@ BR2_PACKAGE_SER2NET=y
 # a complete data exfiltration path if the device is compromised. #270
 # BR2_PACKAGE_TCPDUMP is not set
 
+# ---- Build host: ccache handled by CI (ccache-action), not Buildroot -----
+# BR2_CCACHE builds host-ccache from source; on GCC 14 (Arch Linux) this
+# fails with -Werror=dangling-reference in the vendored fmt library.
+# BR2_CCACHE is not set
+
 # ---- Redundant / superseded ----------------------------------------------
 # BR2_PACKAGE_TINC is not set
 # BR2_PACKAGE_HAVEGED is not set
